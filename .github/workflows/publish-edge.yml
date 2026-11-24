@@ -1,0 +1,59 @@
+name: Publish edge
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: publish-edge
+  cancel-in-progress: false
+
+env:
+  IMAGE: ghcr.io/owentourlamain/todo-server
+
+jobs:
+  publish:
+    name: Publish edge image
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # The GHCR token is an environment secret; the environment only allows main.
+    environment: ghcr
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Work out version and tags
+        id: meta
+        run: |
+          base=$(sed -nE 's/^version = "(.*)"/\1/p' server/pyproject.toml | head -1)
+          short=${GITHUB_SHA::7}
+          echo "version=${base}-edge.${GITHUB_RUN_NUMBER}+${short}" >> "$GITHUB_OUTPUT"
+          echo "short=${short}" >> "$GITHUB_OUTPUT"
+
+      - name: Build image
+        env:
+          VERSION: ${{ steps.meta.outputs.version }}
+          SHORT: ${{ steps.meta.outputs.short }}
+        run: |
+          docker build \
+            --build-arg APP_VERSION="$VERSION" \
+            --build-arg RELEASE_CHANNEL=edge \
+            --label org.opencontainers.image.source="https://github.com/${GITHUB_REPOSITORY}" \
+            --label org.opencontainers.image.revision="$GITHUB_SHA" \
+            --label org.opencontainers.image.version="$VERSION" \
+            -t "$IMAGE:edge" -t "$IMAGE:sha-$SHORT" \
+            server
+
+      - name: Push image
+        env:
+          GHCR_TOKEN: ${{ secrets.GHCR_TOKEN }}
+          SHORT: ${{ steps.meta.outputs.short }}
+        run: |
+          echo "$GHCR_TOKEN" | docker login ghcr.io -u "$GITHUB_REPOSITORY_OWNER" --password-stdin
+          docker push "$IMAGE:sha-$SHORT"
+          docker push "$IMAGE:edge"
+          docker logout ghcr.io
