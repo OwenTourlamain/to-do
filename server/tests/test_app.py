@@ -22,7 +22,7 @@ def client() -> TestClient:
 def test_index_renders(client: TestClient) -> None:
     response = client.get("/")
     assert response.status_code == 200
-    assert "Hello, world" in response.text
+    assert "Hello world again!" in response.text
     assert "1.2.3 (edge)" in response.text
 
 
