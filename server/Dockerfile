@@ -14,13 +14,16 @@ RUN uv sync --locked --no-dev --no-editable
 FROM python:3.12-slim
 ARG APP_VERSION=dev
 ARG RELEASE_CHANNEL=dev
-RUN useradd --system --uid 10001 --no-create-home app
+RUN useradd --system --uid 10001 --no-create-home app \
+ && mkdir /data && chown app:app /data
 COPY --from=build /app/.venv /app/.venv
 ENV PATH=/app/.venv/bin:$PATH \
     APP_VERSION=$APP_VERSION \
     RELEASE_CHANNEL=$RELEASE_CHANNEL \
     HOST=0.0.0.0 \
-    PORT=8000
+    PORT=8000 \
+    DATA_DIR=/data
+VOLUME /data
 USER app
 EXPOSE 8000
 HEALTHCHECK --interval=30s --timeout=3s \

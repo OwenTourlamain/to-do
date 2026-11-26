@@ -57,9 +57,28 @@ uv run ruff check && uv run ruff format --check
 
 Configuration is by environment variables; see `server/.env.example`.
 
+## Code layout
+
+The server is layered, and `tests/test_architecture.py` enforces it:
+
+- `models/`: domain entities (frozen dataclasses) and enums, with no dependencies on the rest of the app.
+- `db/`: everything about storage. Other code imports only its facade (`Database`, `UnitOfWork` and the errors); repositories return domain models, never ORM rows. Only this package may import SQLAlchemy or Alembic.
+- `services/`: use cases, working through a `UnitOfWork`.
+- `api/` and `web/`: the JSON API and the HTML UI.
+
 ## Database migrations
 
-Migrations are forward-only. Never edit a migration that has been merged; add a new one.
+The server uses SQLAlchemy and Alembic, and migrates itself on startup.
+
+- Migrations are forward-only: there are no downgrades. Never edit a migration that has been merged; add a new one.
+- After changing `db/tables.py`, generate a revision from `server/` and **review it by hand**, because autogenerate makes mistakes:
+
+  ```sh
+  uv run alembic revision --autogenerate --rev-id 0002 -m "describe the change"
+  ```
+
+- Use portable column types only. SQLite is the default backend, but the schema must stay PostgreSQL-compatible.
+- The test suite fails if `tables.py` and the migrations drift apart.
 
 ## Feature flags
 
