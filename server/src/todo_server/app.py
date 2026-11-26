@@ -17,11 +17,12 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     settings = settings or load_settings()
     app = FastAPI(title="todo-server", version=settings.version)
     templates = Jinja2Templates(directory=PACKAGE_DIR / "templates")
+    templates.env.globals["settings"] = settings
     app.mount("/static", StaticFiles(directory=PACKAGE_DIR / "static"), name="static")
 
     @app.get("/", response_class=HTMLResponse)
     def index(request: Request) -> HTMLResponse:
-        return templates.TemplateResponse(request, "index.html", {"settings": settings})
+        return templates.TemplateResponse(request, "index.html")
 
     @app.get("/hello", response_class=HTMLResponse)
     def hello(request: Request) -> HTMLResponse:
