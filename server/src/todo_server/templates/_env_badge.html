@@ -1,0 +1,17 @@
+{#- Floating environment badge and dev menu. Never rendered on the stable channel. -#}
+{% if settings.channel != "stable" %}
+<details class="env-badge env-badge--{{ settings.channel if settings.channel in ('dev', 'edge') else 'other' }}" data-testid="env-badge">
+  <summary>{{ settings.channel | upper }}</summary>
+  <div class="env-menu">
+    <dl>
+      <dt>Channel</dt><dd>{{ settings.channel }}</dd>
+      <dt>Version</dt><dd>{{ settings.version }}</dd>
+    </dl>
+    <ul>
+      <li><a href="/docs">API docs</a></li>
+      <li><a href="/version">/version</a></li>
+      <li><a href="/healthz">/healthz</a></li>
+    </ul>
+  </div>
+</details>
+{% endif %}
